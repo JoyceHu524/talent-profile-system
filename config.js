@@ -1,5 +1,5 @@
 module.exports = {
-  port: 3000,
+  port: process.env.PORT || 3000,
   sessionSecret: 'talent-profile-secret-2024',
   admin: {
     username: 'admin',

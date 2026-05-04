@@ -3,6 +3,7 @@ const session = require('express-session');
 const path = require('path');
 const fs = require('fs');
 const config = require('./config');
+const { initDatabase } = require('./database');
 
 // 确保上传目录存在
 fs.mkdirSync(config.uploadDir, { recursive: true });
@@ -54,11 +55,16 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: err.message || '服务器内部错误' });
 });
 
-// 启动服务器
-app.listen(config.port, () => {
-  console.log(`✅ 高潜人才画像系统已启动`);
-  console.log(`📍 访问地址: http://localhost:${config.port}`);
-  console.log(`🔑 登录账号: ${config.admin.username} / ${config.admin.password}`);
+// 启动服务器（先初始化数据库）
+initDatabase().then(() => {
+  app.listen(config.port, () => {
+    console.log(`✅ 高潜人才画像系统已启动`);
+    console.log(`📍 访问地址: http://localhost:${config.port}`);
+    console.log(`🔑 登录账号: ${config.admin.username} / ${config.admin.password}`);
+  });
+}).catch(err => {
+  console.error('数据库初始化失败:', err);
+  process.exit(1);
 });
 
 module.exports = app;
