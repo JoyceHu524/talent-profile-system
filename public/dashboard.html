@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>人员列表 · 高潜人才画像系统</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <!-- 导航 -->
+  <nav class="navbar">
+    <a href="/dashboard" class="navbar-brand">
+      <div class="brand-icon">🌟</div>
+      <span>高潜人才画像</span>
+    </a>
+    <ul class="navbar-nav">
+      <li><a href="/dashboard" class="active">人员列表</a></li>
+      <li><a href="/group">群体分析</a></li>
+    </ul>
+    <div class="navbar-actions">
+      <span id="userInfo" style="font-size:13px; color:var(--text-secondary);"></span>
+      <button class="btn btn-secondary btn-sm" onclick="logout()">退出</button>
+    </div>
+  </nav>
+
+  <div class="page-container">
+    <!-- 页头 -->
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">高潜人才库</h1>
+        <p class="page-subtitle" id="peopleCount">共 0 位学员</p>
+      </div>
+      <button class="btn btn-primary" onclick="openAddModal()">
+        ＋ 新增学员
+      </button>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:20px;" id="statsRow">
+      <div class="card" style="padding:16px;">
+        <div class="stat-number" id="stat-total">0</div>
+        <div class="stat-label">全部学员</div>
+      </div>
+      <div class="card" style="padding:16px;">
+        <div class="stat-number" style="color:var(--success);" id="stat-complete">0</div>
+        <div class="stat-label">画像完整（≥80%）</div>
+      </div>
+      <div class="card" style="padding:16px;">
+        <div class="stat-number" style="color:var(--warning);" id="stat-partial">0</div>
+        <div class="stat-label">画像进行中</div>
+      </div>
+      <div class="card" style="padding:16px;">
+        <div class="stat-number" style="color:var(--danger);" id="stat-empty">0</div>
+        <div class="stat-label">待建立画像</div>
+      </div>
+    </div>
+
+    <!-- 筛选栏 -->
+    <div class="filter-bar">
+      <div class="search-input" style="position:relative; flex:1; min-width:200px;">
+        <span class="search-icon" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);">🔍</span>
+        <input type="text" class="form-control" id="searchInput" placeholder="搜索姓名、岗位..." style="padding-left:32px;" oninput="debounceSearch()">
+      </div>
+      <select class="filter-select" id="filterCohort" onchange="loadPeople()">
+        <option value="">全部期次</option>
+        <option value="第一期">第一期</option>
+        <option value="第二期">第二期</option>
+        <option value="第三期">第三期</option>
+      </select>
+      <select class="filter-select" id="filterBL" onchange="loadPeople()">
+        <option value="">全部业务线</option>
+        <option value="前线">前线</option>
+        <option value="后线">后线</option>
+        <option value="履约">履约</option>
+        <option value="外卖">外卖</option>
+        <option value="下沉">下沉</option>
+      </select>
+      <select class="filter-select" id="filterStatus" onchange="loadPeople()">
+        <option value="">全部状态</option>
+        <option value="complete">已完整</option>
+        <option value="partial">进行中</option>
+        <option value="empty">待建立</option>
+      </select>
+    </div>
+
+    <!-- 人员列表 -->
+    <div class="people-grid" id="peopleGrid">
+      <!-- 动态生成 -->
+    </div>
+
+    <div id="emptyState" style="display:none;">
+      <div class="empty-state">
+        <div class="empty-icon">👥</div>
+        <h3>暂无学员</h3>
+        <p>点击右上角「+ 新增学员」开始建立高潜人才画像</p>
+        <button class="btn btn-primary" onclick="openAddModal()">+ 新增学员</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新增/编辑 Modal -->
+  <div class="modal-overlay" id="personModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalTitle">新增学员</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editPersonId">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">姓名 <span style="color:var(--danger)">*</span></label>
+            <input type="text" class="form-control" id="f_name" placeholder="请输入姓名">
+          </div>
+          <div class="form-group">
+            <label class="form-label">性别</label>
+            <select class="form-control" id="f_gender">
+              <option value="">请选择</option>
+              <option value="男">男</option>
+              <option value="女">女</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">年龄</label>
+            <input type="number" class="form-control" id="f_age" placeholder="请输入年龄" min="18" max="65">
+          </div>
+          <div class="form-group">
+            <label class="form-label">学历</label>
+            <select class="form-control" id="f_education">
+              <option value="">请选择</option>
+              <option value="本科">本科</option>
+              <option value="硕士">硕士</option>
+              <option value="博士">博士</option>
+              <option value="专科">专科</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">当前岗位</label>
+            <input type="text" class="form-control" id="f_position" placeholder="如：运营经理">
+          </div>
+          <div class="form-group">
+            <label class="form-label">所属业务线</label>
+            <select class="form-control" id="f_business_line">
+              <option value="">请选择</option>
+              <option value="前线">前线</option>
+              <option value="后线">后线</option>
+              <option value="履约">履约</option>
+              <option value="外卖">外卖</option>
+              <option value="下沉">下沉</option>
+              <option value="到店">到店</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">入池期次</label>
+            <select class="form-control" id="f_cohort">
+              <option value="">请选择</option>
+              <option value="第一期">第一期</option>
+              <option value="第二期">第二期</option>
+              <option value="第三期">第三期</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">上级Leader</label>
+            <input type="text" class="form-control" id="f_leader_name" placeholder="上级姓名">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">总工龄（年）</label>
+            <input type="number" class="form-control" id="f_total_years" placeholder="如：8" step="0.5" min="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">美团工龄（年）</label>
+            <input type="number" class="form-control" id="f_meituan_years" placeholder="如：3" step="0.5" min="0">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">备注</label>
+          <textarea class="form-control" id="f_notes" placeholder="其他说明..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" onclick="savePerson()" id="saveBtn">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast容器 -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="/js/app.js"></script>
+  <script>
+    let searchTimer = null;
+
+    function debounceSearch() {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(loadPeople, 400);
+    }
+
+    async function loadPeople() {
+      const search = document.getElementById('searchInput').value;
+      const cohort = document.getElementById('filterCohort').value;
+      const bl = document.getElementById('filterBL').value;
+      const status = document.getElementById('filterStatus').value;
+
+      const params = new URLSearchParams();
+      if (search) params.set('search', search);
+      if (cohort) params.set('year', cohort);
+      if (bl) params.set('business_line', bl);
+      if (status) params.set('status', status);
+
+      try {
+        const res = await fetch('/api/people?' + params.toString());
+        const data = await res.json();
+        if (!data.success) return;
+
+        renderPeople(data.data);
+        updateStats(data.data);
+      } catch (err) {
+        showToast('加载失败: ' + err.message, 'error');
+      }
+    }
+
+    function renderPeople(people) {
+      const grid = document.getElementById('peopleGrid');
+      const empty = document.getElementById('emptyState');
+      document.getElementById('peopleCount').textContent = `共 ${people.length} 位学员`;
+
+      if (people.length === 0) {
+        grid.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+
+      empty.style.display = 'none';
+      grid.innerHTML = people.map(p => {
+        const initials = p.name ? p.name[0] : '?';
+        const pct = p.completeness || 0;
+        const fillClass = pct >= 80 ? 'high' : pct >= 40 ? 'mid' : '';
+
+        return `
+          <div class="person-card" onclick="gotoProfile(${p.id})">
+            <div class="card-actions">
+              <button class="btn btn-secondary btn-sm btn-icon" title="编辑" onclick="editPerson(event, ${p.id})">✏️</button>
+              <button class="btn btn-danger btn-sm btn-icon" title="删除" onclick="deletePerson(event, ${p.id}, '${p.name}')">🗑</button>
+            </div>
+            <div class="person-card-header">
+              <div class="person-avatar">${initials}</div>
+              <div>
+                <div class="person-name">${p.name}</div>
+                <div class="person-position">${p.position || '—'}</div>
+              </div>
+            </div>
+            <div class="person-meta">
+              ${p.cohort ? `<span class="tag tag-blue">${p.cohort}</span>` : ''}
+              ${p.business_line ? `<span class="tag tag-green">${p.business_line}</span>` : ''}
+              ${p.education ? `<span class="tag tag-gray">${p.education}</span>` : ''}
+            </div>
+            <div class="progress-section">
+              <div class="progress-bar">
+                <div class="progress-fill ${fillClass}" style="width:${pct}%"></div>
+              </div>
+              <span class="progress-text ${pct>=80?'completeness-high':pct>=40?'completeness-mid':'completeness-low'}">${pct}%</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateStats(people) {
+      document.getElementById('stat-total').textContent = people.length;
+      document.getElementById('stat-complete').textContent = people.filter(p => p.completeness >= 80).length;
+      document.getElementById('stat-partial').textContent = people.filter(p => p.completeness > 0 && p.completeness < 80).length;
+      document.getElementById('stat-empty').textContent = people.filter(p => p.completeness === 0).length;
+    }
+
+    function gotoProfile(id) {
+      window.location.href = `/profile?id=${id}`;
+    }
+
+    function openAddModal() {
+      document.getElementById('modalTitle').textContent = '新增学员';
+      document.getElementById('editPersonId').value = '';
+      document.getElementById('f_name').value = '';
+      document.getElementById('f_gender').value = '';
+      document.getElementById('f_age').value = '';
+      document.getElementById('f_education').value = '';
+      document.getElementById('f_position').value = '';
+      document.getElementById('f_business_line').value = '';
+      document.getElementById('f_cohort').value = '';
+      document.getElementById('f_leader_name').value = '';
+      document.getElementById('f_total_years').value = '';
+      document.getElementById('f_meituan_years').value = '';
+      document.getElementById('f_notes').value = '';
+      document.getElementById('personModal').classList.add('active');
+    }
+
+    async function editPerson(e, id) {
+      e.stopPropagation();
+      try {
+        const res = await fetch(`/api/people/${id}`);
+        const data = await res.json();
+        if (!data.success) return;
+        const p = data.data;
+
+        document.getElementById('modalTitle').textContent = '编辑学员信息';
+        document.getElementById('editPersonId').value = id;
+        document.getElementById('f_name').value = p.name || '';
+        document.getElementById('f_gender').value = p.gender || '';
+        document.getElementById('f_age').value = p.age || '';
+        document.getElementById('f_education').value = p.education || '';
+        document.getElementById('f_position').value = p.position || '';
+        document.getElementById('f_business_line').value = p.business_line || '';
+        document.getElementById('f_cohort').value = p.cohort || '';
+        document.getElementById('f_leader_name').value = p.leader_name || '';
+        document.getElementById('f_total_years').value = p.total_years || '';
+        document.getElementById('f_meituan_years').value = p.meituan_years || '';
+        document.getElementById('f_notes').value = p.notes || '';
+        document.getElementById('personModal').classList.add('active');
+      } catch (err) {
+        showToast('加载失败', 'error');
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('personModal').classList.remove('active');
+    }
+
+    async function savePerson() {
+      const name = document.getElementById('f_name').value.trim();
+      if (!name) { showToast('姓名不能为空', 'error'); return; }
+
+      const btn = document.getElementById('saveBtn');
+      btn.disabled = true;
+      btn.textContent = '保存中...';
+
+      const body = {
+        name,
+        gender: document.getElementById('f_gender').value,
+        age: document.getElementById('f_age').value,
+        education: document.getElementById('f_education').value,
+        position: document.getElementById('f_position').value,
+        business_line: document.getElementById('f_business_line').value,
+        cohort: document.getElementById('f_cohort').value,
+        leader_name: document.getElementById('f_leader_name').value,
+        total_years: document.getElementById('f_total_years').value,
+        meituan_years: document.getElementById('f_meituan_years').value,
+        notes: document.getElementById('f_notes').value
+      };
+
+      const editId = document.getElementById('editPersonId').value;
+
+      try {
+        const url = editId ? `/api/people/${editId}` : '/api/people';
+        const method = editId ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(editId ? '更新成功' : '新增成功', 'success');
+          closeModal();
+          loadPeople();
+        } else {
+          showToast(data.error || '保存失败', 'error');
+        }
+      } catch (err) {
+        showToast('网络错误', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '保存';
+      }
+    }
+
+    async function deletePerson(e, id, name) {
+      e.stopPropagation();
+      if (!confirm(`确认删除学员「${name}」？此操作不可撤销。`)) return;
+      try {
+        const res = await fetch(`/api/people/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          showToast('删除成功', 'success');
+          loadPeople();
+        }
+      } catch (err) {
+        showToast('删除失败', 'error');
+      }
+    }
+
+    async function logout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/';
+    }
+
+    // 点击遮罩关闭
+    document.getElementById('personModal').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+
+    // 初始化
+    checkAuth(() => {
+      loadPeople();
+      fetch('/api/auth/status').then(r=>r.json()).then(d => {
+        if (d.user) document.getElementById('userInfo').textContent = d.user.username;
+      });
+    });
+  </script>
+</body>
+</html>

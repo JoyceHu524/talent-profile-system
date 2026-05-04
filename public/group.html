@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>群体分析 · 高潜人才画像系统</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/dashboard" class="navbar-brand">
+      <div class="brand-icon">🌟</div>
+      <span>高潜人才画像</span>
+    </a>
+    <ul class="navbar-nav">
+      <li><a href="/dashboard">人员列表</a></li>
+      <li><a href="/group" class="active">群体分析</a></li>
+    </ul>
+    <div class="navbar-actions">
+      <button class="btn btn-secondary btn-sm" onclick="logout()">退出</button>
+    </div>
+  </nav>
+
+  <div class="page-container">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">群体分析</h1>
+        <p class="page-subtitle" id="groupSubtitle">共 0 人</p>
+      </div>
+    </div>
+
+    <!-- 筛选栏 -->
+    <div class="filter-bar" style="margin-bottom:20px;">
+      <select class="filter-select" id="filterCohort" onchange="loadGroupData()">
+        <option value="">全部期次</option>
+        <option value="第一期">第一期</option>
+        <option value="第二期">第二期</option>
+        <option value="第三期">第三期</option>
+      </select>
+      <select class="filter-select" id="filterBL" onchange="loadGroupData()">
+        <option value="">全部业务线</option>
+        <option value="前线">前线</option>
+        <option value="后线">后线</option>
+        <option value="履约">履约</option>
+        <option value="外卖">外卖</option>
+        <option value="下沉">下沉</option>
+      </select>
+      <span style="font-size:13px;color:var(--text-secondary);margin-left:auto;">
+        仅展示已有评分数据的学员
+      </span>
+    </div>
+
+    <!-- 图表区 -->
+    <div class="group-charts">
+      <!-- 群体雷达图 -->
+      <div class="chart-card">
+        <div class="card-header">
+          <span class="card-title">🕸️ 群体特质雷达图</span>
+        </div>
+        <div class="card-body" style="display:flex;justify-content:center;">
+          <div style="max-width:360px;width:100%;">
+            <canvas id="groupRadarChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- 均值柱状图 -->
+      <div class="chart-card">
+        <div class="card-header">
+          <span class="card-title">📊 各维度均值</span>
+        </div>
+        <div class="card-body">
+          <canvas id="avgBarChart" height="280"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- 交叉分析 -->
+    <div class="chart-card full-width" style="margin-bottom:20px;">
+      <div class="card-header">
+        <span class="card-title">🔀 交叉分析</span>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <span style="font-size:13px;color:var(--text-secondary);">分组维度：</span>
+          <select class="filter-select" id="crossGroup1" onchange="renderCrossAnalysis()">
+            <option value="cohort">入池期次</option>
+            <option value="business_line">业务线</option>
+            <option value="education">学历</option>
+            <option value="gender">性别</option>
+          </select>
+          <span style="font-size:13px;color:var(--text-secondary);">vs</span>
+          <select class="filter-select" id="crossDimension" onchange="renderCrossAnalysis()">
+            <option value="">— 选择维度 —</option>
+          </select>
+        </div>
+      </div>
+      <div class="card-body">
+        <canvas id="crossChart" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- 对比表格 -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">
+        <span class="card-title">📋 人员维度对比</span>
+        <button class="btn btn-secondary btn-sm" onclick="copyTableData()">📋 复制数据</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="compare-table" id="compareTable">
+          <thead id="compareTableHead"></thead>
+          <tbody id="compareTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/group.js"></script>
+</body>
+</html>

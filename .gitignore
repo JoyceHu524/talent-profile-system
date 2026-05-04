@@ -1,0 +1,7 @@
+node_modules/
+uploads/
+talent.db
+talent.db-shm
+talent.db-wal
+*.log
+.env
